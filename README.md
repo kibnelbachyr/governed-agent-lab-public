@@ -1,12 +1,14 @@
 # Governed Agent Lab
 
+[![Offline tests](https://github.com/kibnelbachyr/governed-agent-lab-public/actions/workflows/ci.yml/badge.svg)](https://github.com/kibnelbachyr/governed-agent-lab-public/actions/workflows/ci.yml)
+
 **A reproducible reference implementation of the control plane around an AI-assisted workflow.**
 
-Experimental release candidate v0.3. A fictional storage-retention change demonstrates separation between recommendation and execution authority. No external runtime dependencies, credentials, real infrastructure, or live model calls.
+[Experimental release v0.3.0](https://github.com/kibnelbachyr/governed-agent-lab-public/releases/tag/v0.3.0) · Apache-2.0. A fictional storage-retention change demonstrates separation between recommendation and execution authority. No external runtime dependencies, credentials, real infrastructure, or live model calls.
 
 ## Run
 
-Python 3.11+ (validated locally with 3.13.5):
+Python 3.11 or 3.13 (both verified in release CI):
 
 ```sh
 python -m unittest discover -s tests -v
@@ -37,13 +39,13 @@ A deterministic fake model receives a synthetic inventory snapshot. The controll
 
 See [local test evidence](test-results.txt) for the repeated 14-test run and [demo summary](demo-output.txt) for the scripted affirmative demo. Imported source and tests were verified against the tested Git blob identities.
 
-The [CI workflow](.github/workflows/ci.yml) runs unit tests and affirmative/rejected demo smoke tests on Python 3.11 and 3.13 for pull requests and pushes to main. It uses no secrets or deployment steps; GitHub-hosted runner minutes are subject to account quotas. CI results must be checked separately from local results.
+The [CI workflow](.github/workflows/ci.yml) runs unit tests and affirmative/rejected demo smoke tests on Python 3.11 and 3.13 for pull requests and pushes to main. It uses no secrets or deployment steps; GitHub-hosted runner minutes are subject to account quotas. The [public release CI run](https://github.com/kibnelbachyr/governed-agent-lab-public/actions/runs/45760999145) passed on both interpreters.
 
 ## Denial audit
 
 Expected policy or validation denials from submit, propose, decide and execute are recorded separately after the operation rolls back. The record contains only an operation name, timestamp and a verified local request ID (or null). Unknown IDs, raw payloads and exception messages are not retained by this audit path. These records persist across database reopen; the state-transition log remains separate. This does not cover unexpected exceptions or database unavailability, and audit writing is not atomic with the preceding rollback. No security-grade or tamper-resistant logging is claimed.
 
-The original local evidence applies to v0.1. The 19-test suite and both smoke tests passed on Python 3.11 and 3.13 during earlier private development.
+The original local evidence applies to v0.1. The v0.3.0 public release CI verified 19 tests and both smoke tests per interpreter.
 
 ## Offline scenario evaluation
 
@@ -51,7 +53,7 @@ The original local evidence applies to v0.1. The 19-test suite and both smoke te
 python -m evals.run --output evaluation-report.json
 ```
 
-The [versioned fixture set](evals/cases-v1.json) defines 16 synthetic cases with expected inventory, action count, workflow state, denial records and event sequence. The runner uses a fresh SQLite database per case; any mismatch fails CI. See the [evaluation protocol](evals/README.md) for the rubric, scope and interpretation. The pre-release development CI passed all 19 unit tests, 16 scenarios and both smoke tests on Python 3.11 and 3.13. Verification of the clean release repository is tracked separately in its Actions tab. See [validation evidence](docs/validation.md) for the scope of this result. It is a control-plane regression suite, not a held-out or independently authored LLM benchmark.
+The [versioned fixture set](evals/cases-v1.json) defines 16 synthetic cases with expected inventory, action count, workflow state, denial records and event sequence. The runner uses a fresh SQLite database per case; any mismatch fails CI. See the [evaluation protocol](evals/README.md) for the rubric, scope and interpretation. The public v0.3.0 release CI passed all 19 unit tests, 16 scenarios and both smoke tests on Python 3.11 and 3.13. See [validation evidence](docs/validation.md) for the scope of this result. It is a control-plane regression suite, not a held-out or independently authored LLM benchmark.
 
 ## Limitations
 
