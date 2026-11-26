@@ -41,6 +41,44 @@ class Recommendation:
     evidence_revision: int
     rationale: str
 
+MAX_RESPONSE_BYTES = 4096
+_DEFAULT_RESPONSE = object()
+
+def _unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError('duplicate JSON key')
+        result[key] = value
+    return result
+
+def _reject_constant(value):
+    raise ValueError('nonfinite JSON number')
+
+def parse_response(raw):
+    """Only bounded UTF-8 JSON data crosses the recommendation boundary."""
+    if type(raw) is not bytes or not 0 < len(raw) <= MAX_RESPONSE_BYTES:
+        raise Denied('invalid provider response size or type')
+    try:
+        data = json.loads(raw.decode('utf-8'), object_pairs_hook=_unique_object,
+                          parse_constant=_reject_constant)
+        if type(data) is not dict or set(data) != {
+            'retention_days', 'evidence_id', 'evidence_revision', 'rationale'
+        }:
+            raise ValueError('unexpected response fields')
+        if (type(data['retention_days']) is not int or
+            type(data['evidence_revision']) is not int or
+            type(data['evidence_id']) is not str or
+            type(data['rationale']) is not str):
+            raise ValueError('invalid primitive types')
+        for value in (data['evidence_id'], data['rationale']):
+            value.encode('utf-8')
+            if any(ord(ch) < 32 or 127 <= ord(ch) <= 159 for ch in value):
+                raise ValueError('control character')
+        return Recommendation(**data)
+    except (ValueError, TypeError, UnicodeError, RecursionError) as exc:
+        raise Denied('invalid provider response') from exc
+
 class FakeModel:
     """Deterministic read-only adapter, not an actual LLM."""
     def recommend(self, requested_days, inventory):
@@ -72,7 +110,7 @@ class Lab:
         return self._sessions[principal]
 
     def _authorize(self, session, operation):
-        if type(session) is str and len(session) <= 128:
+        if type(session) is str and len(session) <= 128 and session.isascii():
             for principal, token in self._sessions.items():
                 if hmac.compare_digest(session.encode('utf-8', errors='replace'), token.encode()) and PRINCIPALS[principal] == operation:
                     return principal
@@ -99,7 +137,7 @@ class Lab:
         # Never persist raw unknown IDs, payloads, exception messages or credentials.
         with self.tx():
             known = None
-            if isinstance(rid, str) and len(rid) == 36:
+            if type(rid) is str and len(rid) == 36 and rid.isascii():
                 row = self.db.execute('SELECT id FROM requests WHERE id=?', (rid,)).fetchone()
                 if row is not None:
                     known = row['id']
@@ -110,7 +148,7 @@ class Lab:
         return [dict(row) for row in self.db.execute('SELECT * FROM denials ORDER BY seq')]
 
     def _row(self, rid):
-        if not isinstance(rid, str) or len(rid) != 36:
+        if type(rid) is not str or len(rid) != 36 or not rid.isascii():
             raise Denied('invalid request identifier')
         row = self.db.execute('SELECT * FROM requests WHERE id=?',(rid,)).fetchone()
         if row is None:
@@ -142,22 +180,19 @@ class Lab:
             raise Denied('invalid rationale')
 
     @audit_denials('propose')
-    def propose(self, rid, model=None, *, session=None):
+    def propose(self, rid, response=_DEFAULT_RESPONSE, *, session=None):
         self._authorize(session, 'propose')
-        model = model if model is not None else FakeModel()
-        # Injected Python adapter is trusted code; only its returned data is untrusted.
         initial = self._row(rid)
         if initial['status'] in ('executed','rejected'):
             raise Denied('terminal request')
         snapshot = self.inventory()
-        try:
-            rec = model.recommend(initial['requested_days'],dict(snapshot))
-        except Exception as exc:
+        if response is _DEFAULT_RESPONSE:
+            response = json.dumps(FakeModel().recommend(initial['requested_days'], snapshot).__dict__).encode()
+        if response is None:
             with self.tx():
-                self._event(rid,'model_failed',{'error_type':type(exc).__name__})
-            raise Denied('model failed; no recommendation recorded') from exc
-        if type(rec) is not Recommendation:
-            raise Denied('invalid recommendation schema')
+                self._event(rid,'model_failed',{'reason':'provider_unavailable'})
+            raise Denied('provider unavailable')
+        rec = parse_response(response)
         with self.tx():
             row = self._row(rid)
             if row['status'] in ('executed','rejected'):
@@ -166,7 +201,7 @@ class Lab:
                 raise Denied('concurrent recommendation revision')
             self._policy(row,rec,self.inventory())
             ver = row['version']+1
-            payload = json.dumps(rec.__dict__,sort_keys=True,separators=(',',':'))
+            payload = json.dumps(rec.__dict__,sort_keys=True,separators=(',',':'),ensure_ascii=False)
             digest = hashlib.sha256(f'{rid}:{ver}:{POLICY_VERSION}:{payload}'.encode()).hexdigest()
             self.db.execute('UPDATE requests SET version=?,recommendation=?,digest=?,status=?,reviewer=NULL,approval_digest=NULL WHERE id=?',
                             (ver,payload,digest,'proposed',rid))
@@ -176,18 +211,18 @@ class Lab:
     def _current_recommendation(self, row):
         try:
             payload = row['recommendation']
-            rec = Recommendation(**json.loads(payload))
+            rec = parse_response(payload.encode('utf-8'))
             expected = hashlib.sha256(f"{row['id']}:{row['version']}:{POLICY_VERSION}:{payload}".encode()).hexdigest()
             if row['digest'] != expected:
                 raise Denied('recommendation integrity or policy version mismatch')
             return rec
-        except (TypeError, ValueError, KeyError) as exc:
+        except (TypeError, ValueError, KeyError, AttributeError) as exc:
             raise Denied('invalid persisted recommendation') from exc
 
     @audit_denials('decide')
     def decide(self,rid,digest,approve, *, session=None):
         reviewer = self._authorize(session, 'decide')
-        if type(approve) is not bool:
+        if type(approve) is not bool or type(digest) is not str or len(digest) != 64:
             raise Denied('invalid decision')
         with self.tx():
             row = self._row(rid)
@@ -204,6 +239,8 @@ class Lab:
     @audit_denials('execute')
     def execute(self,rid,digest, *, session=None):
         principal = self._authorize(session, 'execute')
+        if type(digest) is not str or len(digest) != 64:
+            raise Denied('invalid digest')
         # Only a synthetic SQLite mutation; transactional authorization and idempotency.
         with self.tx():
             row = self._row(rid)

@@ -10,25 +10,22 @@ from pathlib import Path
 from lab import Denied, FakeModel, Lab
 
 
-class ScenarioAdapter:
-    """Controlled fake-provider faults, not real prompt-injection attempts."""
-
-    def __init__(self, mode):
-        self.mode = mode
-
-    def recommend(self, requested_days, inventory):
-        valid = FakeModel().recommend(requested_days, inventory)
-        if self.mode == "missing_evidence":
-            return replace(valid, evidence_id="nonexistent")
-        if self.mode == "changed_value":
-            return replace(valid, retention_days=requested_days + 1)
-        if self.mode == "invalid_schema":
-            return {"retention_days": requested_days}
-        if self.mode == "failure":
-            raise RuntimeError("synthetic adapter failure")
-        if self.mode == "stale_evidence":
-            return replace(valid, evidence_revision=inventory["revision"] - 1)
+def scenario_response(mode, requested_days, inventory):
+    """Construct fictional provider data; never pass a callable to the controller."""
+    valid = FakeModel().recommend(requested_days, inventory)
+    if mode == "missing_evidence":
+        valid = replace(valid, evidence_id="nonexistent")
+    elif mode == "changed_value":
+        valid = replace(valid, retention_days=requested_days + 1)
+    elif mode == "invalid_schema":
+        return b'{"retention_days": 60}'
+    elif mode == "failure":
+        return None
+    elif mode == "stale_evidence":
+        valid = replace(valid, evidence_revision=inventory["revision"] - 1)
+    else:
         raise ValueError("unrecognized adapter fault")
+    return json.dumps(valid.__dict__).encode("utf-8")
 
 
 def run_case(case):
@@ -45,7 +42,7 @@ def run_case(case):
                     elif step == "revise":
                         previous, digest = digest, lab.propose(rid, session=lab.simulated_session('controller'))
                     elif step.startswith("propose_"):
-                        digest = lab.propose(rid, ScenarioAdapter(step.removeprefix("propose_")), session=lab.simulated_session('controller'))
+                        digest = lab.propose(rid, scenario_response(step.removeprefix("propose_"), case["requested_days"], lab.inventory()), session=lab.simulated_session('controller'))
                     elif step in ("approve", "reject"):
                         lab.decide(rid, digest, step == "approve", session=lab.simulated_session('reviewer'))
                     elif step == "approve_wrong":

@@ -1,11 +1,11 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
 from lab import Lab, Denied, Recommendation
 
-class FixedModel:
-    def __init__(self, rec): self.rec=rec
-    def recommend(self, days, inventory): return self.rec
+def response_bytes(rec):
+    return json.dumps(rec.__dict__ if type(rec) is Recommendation else rec).encode('utf-8')
 
 class Tests(unittest.TestCase):
     def setUp(self):
@@ -15,7 +15,7 @@ class Tests(unittest.TestCase):
     def tearDown(self):
         self.lab.close(); self.tmp.cleanup()
     def submit(self, days): return self.lab.submit(days, session=self.lab.simulated_session('requester'))
-    def propose(self, rid, model=None): return self.lab.propose(rid, model, session=self.lab.simulated_session('controller'))
+    def propose(self, rid, *response): return self.lab.propose(rid, *response, session=self.lab.simulated_session('controller'))
     def decide(self, rid, digest, reviewer, approve):
         return self.lab.decide(rid, digest, approve, session=self.lab.simulated_session('reviewer'))
     def execute(self, rid, digest): return self.lab.execute(rid, digest, session=self.lab.simulated_session('executor'))
@@ -44,7 +44,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(self.lab.inventory()['revision'],2)
     def test_missing_evidence(self):
         rid=self.submit(60)
-        with self.assertRaises(Denied): self.propose(rid,FixedModel(Recommendation(60,'invented',1,'claim')))
+        with self.assertRaises(Denied): self.propose(rid,response_bytes(Recommendation(60,'invented',1,'claim')))
     def test_policy_below_minimum(self):
         rid=self.submit(10)
         with self.assertRaises(Denied): self.propose(rid)
@@ -53,7 +53,7 @@ class Tests(unittest.TestCase):
         with self.assertRaises(Denied): self.propose(rid)
     def test_model_changes_request(self):
         rid=self.submit(60)
-        with self.assertRaises(Denied): self.propose(rid,FixedModel(Recommendation(90,'synthetic-store',1,'ignore request')))
+        with self.assertRaises(Denied): self.propose(rid,response_bytes(Recommendation(90,'synthetic-store',1,'ignore request')))
     def test_stale_inventory(self):
         rid,d=self.proposal(); self.approve(rid,d)
         other,od=self.proposal(45); self.approve(other,od); self.execute(other,od)
@@ -64,12 +64,10 @@ class Tests(unittest.TestCase):
         self.assertEqual(self.execute(rid,d)['days'],60)
     def test_invalid_schema(self):
         rid=self.submit(60)
-        with self.assertRaises(Denied): self.propose(rid,FixedModel({'approval':True}))
+        with self.assertRaises(Denied): self.propose(rid,response_bytes({'approval':True}))
     def test_model_failure(self):
-        class Broken:
-            def recommend(self,*a): raise RuntimeError('failure')
         rid=self.submit(60)
-        with self.assertRaises(Denied): self.propose(rid,Broken())
+        with self.assertRaises(Denied): self.propose(rid,None)
         with self.assertRaises(Denied): self.execute(rid,'fake')
         self.assertEqual(self.lab.events(rid)[-1]['kind'],'model_failed')
     def test_wrong_digest(self):

@@ -96,7 +96,7 @@ class AuthorityTests(unittest.TestCase):
         with self.assertRaises(Denied):
             self.lab.submit(2**100, session=self.token('requester'))
 
-    def test_terminal_request_never_calls_adapter(self):
+    def test_terminal_request_denies_object(self):
         rid, digest = self.proposal()
         self.lab.decide(rid, digest, False, session=self.token('reviewer'))
         class Spy:
