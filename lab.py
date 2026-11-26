@@ -10,7 +10,14 @@ import sqlite3
 import uuid
 from datetime import datetime, timezone
 
-POLICY_VERSION = 'retention-v2'
+POLICY_VERSION = 'retention-v3'
+
+
+def approval_binding(rid, version, digest, reviewer):
+    """Consistency binding, not a signature against a malicious database writer."""
+    data = json.dumps([rid, version, POLICY_VERSION, digest, reviewer, 'approve'],
+                      separators=(',', ':'))
+    return hashlib.sha256(data.encode('utf-8')).hexdigest()
 
 # In-process simulated credentials, not externally authenticated identities.
 PRINCIPALS = {'requester': 'submit', 'reviewer': 'decide', 'executor': 'execute', 'controller': 'propose'}
@@ -126,7 +133,8 @@ class Lab:
             yield
             self.db.execute('COMMIT')
         except BaseException:
-            self.db.execute('ROLLBACK')
+            if self.db.in_transaction:
+                self.db.execute('ROLLBACK')
             raise
 
     def _event(self, rid, kind, detail):
@@ -190,6 +198,9 @@ class Lab:
             response = json.dumps(FakeModel().recommend(initial['requested_days'], snapshot).__dict__).encode()
         if response is None:
             with self.tx():
+                row = self._row(rid)
+                if row['status'] != initial['status'] or row['version'] != initial['version']:
+                    raise Denied('concurrent recommendation revision')
                 self._event(rid,'model_failed',{'reason':'provider_unavailable'})
             raise Denied('provider unavailable')
         rec = parse_response(response)
@@ -233,7 +244,7 @@ class Lab:
             if approve:
                 self._policy(row,rec,self.inventory())
             self.db.execute('UPDATE requests SET status=?,reviewer=?,approval_digest=? WHERE id=?',
-                            (status,reviewer,digest if approve else None,rid))
+                            (status,reviewer,approval_binding(rid,row['version'],digest,reviewer) if approve else None,rid))
             self._event(rid,status,{'reviewer':reviewer,'digest':digest})
 
     @audit_denials('execute')
@@ -244,7 +255,7 @@ class Lab:
         # Only a synthetic SQLite mutation; transactional authorization and idempotency.
         with self.tx():
             row = self._row(rid)
-            if row['status']!='approved' or row['digest']!=digest or row['approval_digest']!=digest or row['reviewer']!='reviewer':
+            if row['status']!='approved' or row['digest']!=digest or row['reviewer']!='reviewer' or row['approval_digest']!=approval_binding(rid,row['version'],digest,row['reviewer']):
                 raise Denied('current approval required; replay or stale approval denied')
             rec = self._current_recommendation(row)
             self._policy(row,rec,self.inventory())
@@ -252,7 +263,8 @@ class Lab:
             self.db.execute('UPDATE inventory SET days=?,revision=revision+1 WHERE id=?',(rec.retention_days,rec.evidence_id))
             self.db.execute('UPDATE requests SET status=? WHERE id=?',('executed',rid))
             self._event(rid,'executed',{'digest':digest,'days':rec.retention_days,'idempotency_key':rid,'principal':principal})
-        return self.inventory()
+            result = self.inventory()
+        return result
 
     def events(self,rid):
         return [dict(row) for row in self.db.execute('SELECT * FROM events WHERE request_id=? ORDER BY seq',(rid,))]
