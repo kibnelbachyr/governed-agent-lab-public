@@ -1,6 +1,6 @@
 # ADR-001 — Explicit simulated principal and adapter boundary
 
-Status: proposed for hardening; not a release decision.
+Status: implemented on main and verified for the synthetic scope; not a release decision. See [acceptance evidence](hardening-acceptance.md).
 
 The trusted local harness issues four ephemeral capability strings for fixed simulated principals: requester (submit), controller (propose), reviewer (decide), executor (execute). No default authority. Roles are not caller-supplied labels in decisions. Sessions rotate on reopen; persisted approvals are bound to the simulated reviewer identity and current recommendation, not a session token. The harness can issue every role by design, so this is a simulation of authorization, not authenticated people, RBAC infrastructure or multi-tenant isolation.
 

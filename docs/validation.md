@@ -15,6 +15,10 @@
 
 These counts describe the defined suite on each interpreter, not distinct statistical trials or accuracy of a model. The public CI job/step conclusions and test logs were verified; this is a summary, not a raw log archive. Subsequent maintenance changes require fresh CI. The v0.3.0 tag remains unchanged.
 
+## Current development evidence
+
+The v0.3.0 evidence above is historical. See [hardening acceptance](hardening-acceptance.md) for the later verified implementation commit, matrix results and evidence digests.
+
 ## Reproduce
 
 From a clean checkout of the reviewed source:

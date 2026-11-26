@@ -1,6 +1,14 @@
 # Changelog
 
-## v0.3 — experimental release candidate (not yet tagged)
+## Unreleased — proposed v0.4.0 experimental pre-release
+
+- Explicit simulated principal sessions and role validation; bounded JSON provider data interface.
+- Approval-context integrity, policy-version invalidation and transactional adverse-state regressions.
+- 31 scenarios, repeated three times, with typed assertions and observation digests.
+- Narrow static source checks and matrix evidence uploads; see [hardening acceptance](docs/hardening-acceptance.md).
+- Breaking development API changes: operation sessions required; injected model callbacks removed; prior policy approvals require fresh proposal and decision.
+
+## v0.3.0 — published experimental pre-release
 
 - Added 16 separately versioned synthetic controller scenarios and machine-readable evaluation output.
 - Added scenario evaluation to the existing CI matrix.
@@ -16,4 +24,4 @@
 - Implemented typed recommendations, explicit approval, deterministic policy, simulated retention changes and transactional SQLite evidence.
 - Verified 14 unit tests and both smoke tests in CI.
 
-Version labels identify engineering milestones, not published releases or production readiness.
+Only v0.3.0 is published at this checkpoint. Development milestones are not production readiness.
