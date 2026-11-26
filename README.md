@@ -4,7 +4,7 @@
 
 **A reproducible reference implementation of the control plane around an AI-assisted workflow.**
 
-[Experimental release v0.3.0](https://github.com/kibnelbachyr/governed-agent-lab-public/releases/tag/v0.3.0) · Apache-2.0. A fictional storage-retention change demonstrates separation between recommendation and execution authority. No external runtime dependencies, credentials, real infrastructure, or live model calls.
+[Experimental release v0.3.0](https://github.com/kibnelbachyr/governed-agent-lab-public/releases/tag/v0.3.0) · Apache-2.0. A fictional storage-retention change demonstrates separation between recommendation and execution authority. No external runtime dependencies, real provider credentials, real infrastructure, or live model calls.
 
 ## Run
 
@@ -33,7 +33,7 @@ flowchart LR
     X --> E
 ```
 
-A deterministic fake model receives a synthetic inventory snapshot. The controller checks strict, bounded UTF-8 JSON recommendation data (no arbitrary adapter callback) and typed recommendations and an illustrative 30–90 day retention rule (not legal or industry guidance). Approval binds the simulated reviewer principal to the exact recommendation digest, version and policy version. Execution checks current evidence and authorization again, and transactionally records a unique action, inventory update and event.
+A deterministic fake model receives a synthetic inventory snapshot. The controller checks strict, bounded UTF-8 JSON recommendation data (no arbitrary adapter callback) and typed recommendations and an illustrative 30–90 day retention rule (not legal or industry guidance). Approval binds the simulated reviewer principal to the request, recommendation digest, version, policy version and affirmative decision. Execution checks current evidence and authorization again, and transactionally records a unique action, inventory update and event.
 
 ## Evidence and continuous integration
 
@@ -57,9 +57,9 @@ The current [versioned fixture set](evals/cases-v2.json) defines 31 synthetic ca
 
 ## Limitations
 
-On current main, trusted local harness sessions simulate separate roles; they are not authenticated identities. The controller accepts bounded JSON bytes, not provider callables; this is not an OS sandbox; the SQLite event log is not tamper-proof; only expected application-level denials are captured by the denial audit. Evidence validation checks synthetic identity and revision, not factual support of free-form claims. The policy is hardcoded and the sample is single-process. No live model or prompt-injection resilience has been evaluated. No cloud integration, deployment, or independently authored evaluation dataset is included. This is an experimental control-plane prototype, not a deployable security boundary.
+On current main, trusted local harness sessions simulate separate roles; they are not authenticated identities. The controller accepts bounded JSON bytes, not provider callables; this is not an OS sandbox; the SQLite event log is not tamper-proof; only expected application-level denials are captured by the denial audit. Evidence validation checks synthetic identity and revision, not factual support of free-form claims. The policy is hardcoded; local SQLite connection races are tested, not distributed execution. No live model or prompt-injection resilience has been evaluated. No cloud integration, deployment, or independently authored evaluation dataset is included. This is an experimental control-plane prototype, not a deployable security boundary.
 
-Current development: see [ADR-001](docs/adr-001-control-plane.md) and [threat model](docs/threat-model.md). The v0.3.0 tag predates these changes. Static source checks and evidence uploads are defined in [CI](.github/workflows/ci.yml); see [verification scope](docs/static-verification.md). Next: final acceptance review.
+Current development: see [ADR-001](docs/adr-001-control-plane.md) and [threat model](docs/threat-model.md). The v0.3.0 tag predates these changes. Static source checks and evidence uploads are defined in [CI](.github/workflows/ci.yml); see [verification scope](docs/static-verification.md). See [hardening acceptance and verified evidence](docs/hardening-acceptance.md). The proposed v0.4.0 is not yet released.
 
 ## License and provenance
 
