@@ -36,24 +36,24 @@ def run_case(case):
         path = Path(tmp) / "scenario.db"
         lab = Lab(path)
         try:
-            rid = lab.submit(case["requested_days"])
+            rid = lab.submit(case["requested_days"], session=lab.simulated_session('requester'))
             digest = previous = None
             for step in case["steps"]:
                 try:
                     if step == "propose":
-                        digest = lab.propose(rid)
+                        digest = lab.propose(rid, session=lab.simulated_session('controller'))
                     elif step == "revise":
-                        previous, digest = digest, lab.propose(rid)
+                        previous, digest = digest, lab.propose(rid, session=lab.simulated_session('controller'))
                     elif step.startswith("propose_"):
-                        digest = lab.propose(rid, ScenarioAdapter(step.removeprefix("propose_")))
+                        digest = lab.propose(rid, ScenarioAdapter(step.removeprefix("propose_")), session=lab.simulated_session('controller'))
                     elif step in ("approve", "reject"):
-                        lab.decide(rid, digest, "synthetic-reviewer", step == "approve")
+                        lab.decide(rid, digest, step == "approve", session=lab.simulated_session('reviewer'))
                     elif step == "approve_wrong":
-                        lab.decide(rid, "wrong-digest", "synthetic-reviewer", True)
+                        lab.decide(rid, "wrong-digest", True, session=lab.simulated_session('reviewer'))
                     elif step == "execute":
-                        lab.execute(rid, digest)
+                        lab.execute(rid, digest, session=lab.simulated_session('executor'))
                     elif step == "execute_previous":
-                        lab.execute(rid, previous)
+                        lab.execute(rid, previous, session=lab.simulated_session('executor'))
                     elif step == "reopen":
                         lab.close()
                         lab = Lab(path)
