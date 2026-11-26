@@ -1,4 +1,4 @@
-# Offline evaluation protocol v1.0
+# Offline evaluation protocol v2.0
 
 ## Question
 
@@ -6,9 +6,9 @@ Does the deterministic governance controller preserve expected state, authorizat
 
 ## Method and rubric
 
-Run from the repository root with `python -m evals.run --output evaluation-report.json`. Each scenario begins with a fresh SQLite inventory (30 days, revision 1). The expected fields are separately versioned in cases-v1.json. A scenario passes only when all six fields match: final retention, inventory revision, action count, request status, ordered denial operations, ordered event kinds. The runner reports every expected/actual value and exits nonzero on any failure. Unexpected exceptions fail the run rather than being counted as successes.
+Run from the repository root with `python -m evals.run --output evaluation-report.json`. Each scenario begins with a fresh SQLite inventory (30 days, revision 1). The expected fields are separately versioned in cases-v2.json. The 16 original cases retain six assertions (final retention, inventory revision, action count, request status, ordered denial operations, ordered event kinds); the 15 added cases also check per-step outcomes, recommendation version, reviewer and approval presence. Each case runs three times by default on fresh databases. A case passes only if every typed assertion matches and normalized observation hashes are identical across repetitions. The report includes the fixture SHA-256, counts, per-run expected/actual values and digests; any failure exits nonzero. Unexpected exceptions fail the run rather than being counted as successes.
 
-The 16 cases include nominal changes, policy boundaries, rejected or missing approval, stale approval, replay, invalid evidence and schema, adapter failure and reopening the database. The suite deliberately uses a deterministic fake provider and white-box read-only database assertions. Run in CI on Python 3.11 and 3.13 with no provider credentials.
+The 31 cases include role/session misuse, provider authority fields, duplicate keys, oversized/nonfinite/wrong-type payloads, corrupted approval or recommendation, competing inventory changes and terminal requests, in addition to nominal changes, policy boundaries, rejected or missing approval, stale approval, replay, invalid evidence and schema, adapter failure and reopening the database. The suite deliberately uses a deterministic fake provider and white-box database assertions and deliberate synthetic record corruption in designated scenarios. Run in CI on Python 3.11 and 3.13 with no provider credentials.
 
 ## Interpretation and limits
 
