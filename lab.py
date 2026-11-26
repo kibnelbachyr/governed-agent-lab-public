@@ -3,12 +3,18 @@ from dataclasses import dataclass
 from contextlib import contextmanager
 from functools import wraps
 import hashlib
+import hmac
+import secrets
 import json
 import sqlite3
 import uuid
 from datetime import datetime, timezone
 
-POLICY_VERSION = 'retention-v1'
+POLICY_VERSION = 'retention-v2'
+
+# In-process simulated credentials, not externally authenticated identities.
+PRINCIPALS = {'requester': 'submit', 'reviewer': 'decide', 'executor': 'execute', 'controller': 'propose'}
+
 
 class Denied(ValueError):
     pass
@@ -43,6 +49,7 @@ class FakeModel:
 
 class Lab:
     def __init__(self, path):
+        self._sessions = {name: secrets.token_urlsafe(32) for name in PRINCIPALS}
         self.db = sqlite3.connect(path, isolation_level=None)
         self.db.row_factory = sqlite3.Row
         self.db.execute('PRAGMA foreign_keys=ON')
@@ -57,6 +64,19 @@ class Lab:
         CREATE TABLE IF NOT EXISTS denials(seq INTEGER PRIMARY KEY AUTOINCREMENT,
             request_id TEXT REFERENCES requests(id), at TEXT NOT NULL, operation TEXT NOT NULL);
         ''')
+
+    def simulated_session(self, principal):
+        """Trusted local harness only: explicitly simulates identity issuance."""
+        if principal not in self._sessions:
+            raise Denied('unknown simulated principal')
+        return self._sessions[principal]
+
+    def _authorize(self, session, operation):
+        if type(session) is str and len(session) <= 128:
+            for principal, token in self._sessions.items():
+                if hmac.compare_digest(session.encode('utf-8', errors='replace'), token.encode()) and PRINCIPALS[principal] == operation:
+                    return principal
+        raise Denied('missing or unauthorized simulated session')
 
     def close(self):
         self.db.close()
@@ -101,13 +121,14 @@ class Lab:
         return dict(self.db.execute('SELECT * FROM inventory WHERE id=?',('synthetic-store',)).fetchone())
 
     @audit_denials('submit', has_request=False)
-    def submit(self, days):
-        if type(days) is not int:
+    def submit(self, days, *, session=None):
+        principal = self._authorize(session, 'submit')
+        if type(days) is not int or not -(2**63) <= days < 2**63:
             raise Denied('requested days must be integer')
         rid = str(uuid.uuid4())
         with self.tx():
             self.db.execute('INSERT INTO requests(id,requested_days,status) VALUES(?,?,?)',(rid,days,'submitted'))
-            self._event(rid,'submitted',{'days':days})
+            self._event(rid,'submitted',{'days':days,'principal':principal})
         return rid
 
     def _policy(self, request, rec, inventory):
@@ -121,7 +142,8 @@ class Lab:
             raise Denied('invalid rationale')
 
     @audit_denials('propose')
-    def propose(self, rid, model=None):
+    def propose(self, rid, model=None, *, session=None):
+        self._authorize(session, 'propose')
         model = model if model is not None else FakeModel()
         # Untrusted adapter runs outside transaction and has no action capability.
         initial = self._row(rid)
@@ -132,7 +154,7 @@ class Lab:
             with self.tx():
                 self._event(rid,'model_failed',{'error_type':type(exc).__name__})
             raise Denied('model failed; no recommendation recorded') from exc
-        if not isinstance(rec,Recommendation):
+        if type(rec) is not Recommendation:
             raise Denied('invalid recommendation schema')
         with self.tx():
             row = self._row(rid)
@@ -149,10 +171,21 @@ class Lab:
             self._event(rid,'proposed',{'version':ver,'digest':digest,'policy':POLICY_VERSION,'recommendation':rec.__dict__})
         return digest
 
+    def _current_recommendation(self, row):
+        try:
+            payload = row['recommendation']
+            rec = Recommendation(**json.loads(payload))
+            expected = hashlib.sha256(f"{row['id']}:{row['version']}:{POLICY_VERSION}:{payload}".encode()).hexdigest()
+            if row['digest'] != expected:
+                raise Denied('recommendation integrity or policy version mismatch')
+            return rec
+        except (TypeError, ValueError, KeyError) as exc:
+            raise Denied('invalid persisted recommendation') from exc
+
     @audit_denials('decide')
-    def decide(self,rid,digest,reviewer,approve):
-        # Only the simulated human CLI calls this; reviewer is a label, NOT identity authentication.
-        if not isinstance(reviewer,str) or not reviewer.strip() or len(reviewer)>80 or type(approve) is not bool:
+    def decide(self,rid,digest,approve, *, session=None):
+        reviewer = self._authorize(session, 'decide')
+        if type(approve) is not bool:
             raise Denied('invalid decision')
         with self.tx():
             row = self._row(rid)
@@ -160,24 +193,25 @@ class Lab:
                 raise Denied('no current matching recommendation')
             status = 'approved' if approve else 'rejected'
             if approve:
-                self._policy(row,Recommendation(**json.loads(row['recommendation'])),self.inventory())
+                self._policy(row,self._current_recommendation(row),self.inventory())
             self.db.execute('UPDATE requests SET status=?,reviewer=?,approval_digest=? WHERE id=?',
                             (status,reviewer,digest if approve else None,rid))
             self._event(rid,status,{'reviewer':reviewer,'digest':digest})
 
     @audit_denials('execute')
-    def execute(self,rid,digest):
+    def execute(self,rid,digest, *, session=None):
+        principal = self._authorize(session, 'execute')
         # Only a synthetic SQLite mutation; transactional authorization and idempotency.
         with self.tx():
             row = self._row(rid)
-            if row['status']!='approved' or row['digest']!=digest or row['approval_digest']!=digest:
+            if row['status']!='approved' or row['digest']!=digest or row['approval_digest']!=digest or row['reviewer']!='reviewer':
                 raise Denied('current approval required; replay or stale approval denied')
             rec = Recommendation(**json.loads(row['recommendation']))
             self._policy(row,rec,self.inventory())
             self.db.execute('INSERT INTO actions VALUES(?,?,?)',(rid,digest,rec.retention_days))
             self.db.execute('UPDATE inventory SET days=?,revision=revision+1 WHERE id=?',(rec.retention_days,rec.evidence_id))
             self.db.execute('UPDATE requests SET status=? WHERE id=?',('executed',rid))
-            self._event(rid,'executed',{'digest':digest,'days':rec.retention_days,'idempotency_key':rid})
+            self._event(rid,'executed',{'digest':digest,'days':rec.retention_days,'idempotency_key':rid,'principal':principal})
         return self.inventory()
 
     def events(self,rid):
@@ -188,12 +222,12 @@ if __name__ == '__main__':
     from pathlib import Path
     with tempfile.TemporaryDirectory() as tmp:
         lab = Lab(Path(tmp)/'demo.db')
-        request = lab.submit(60)
-        digest = lab.propose(request)
+        request = lab.submit(60, session=lab.simulated_session('requester'))
+        digest = lab.propose(request, session=lab.simulated_session('controller'))
         print('Proposed:',digest)
         answer = input('Approve synthetic change to 60 days? [y/N] ').strip().lower()
-        lab.decide(request,digest,'local-demo-reviewer',answer=='y')
+        lab.decide(request,digest,answer=='y', session=lab.simulated_session('reviewer'))
         if answer=='y':
-            print('Simulated result:',lab.execute(request,digest))
+            print('Simulated result:',lab.execute(request,digest, session=lab.simulated_session('executor')))
         print(json.dumps(lab.events(request),indent=2))
         lab.close()
