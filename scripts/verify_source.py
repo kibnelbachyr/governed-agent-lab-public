@@ -43,7 +43,11 @@ def inspect_python(source, runtime=False):
         if isinstance(node, ast.Call):
             name = (node.func.id if isinstance(node.func, ast.Name) else
                     node.func.attr if isinstance(node.func, ast.Attribute) else None)
-            if name in FORBIDDEN_CALLS:
+            # re.compile compiles a regular expression, not executable Python.
+            regex_compile = (isinstance(node.func, ast.Attribute) and
+                             isinstance(node.func.value, ast.Name) and
+                             node.func.value.id == 're' and node.func.attr == 'compile')
+            if name in FORBIDDEN_CALLS and not regex_compile:
                 errors.append('dynamic code execution call')
     return sorted(set(errors))
 
