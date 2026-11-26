@@ -59,7 +59,7 @@ The current [versioned fixture set](evals/cases-v2.json) defines 31 synthetic ca
 
 On current main, trusted local harness sessions simulate separate roles; they are not authenticated identities. The controller accepts bounded JSON bytes, not provider callables; this is not an OS sandbox; the SQLite event log is not tamper-proof; only expected application-level denials are captured by the denial audit. Evidence validation checks synthetic identity and revision, not factual support of free-form claims. The policy is hardcoded and the sample is single-process. No live model or prompt-injection resilience has been evaluated. No cloud integration, deployment, or independently authored evaluation dataset is included. This is an experimental control-plane prototype, not a deployable security boundary.
 
-Current development: see [ADR-001](docs/adr-001-control-plane.md) and [threat model](docs/threat-model.md). The v0.3.0 tag predates these changes. Next: static verification and final acceptance review.
+Current development: see [ADR-001](docs/adr-001-control-plane.md) and [threat model](docs/threat-model.md). The v0.3.0 tag predates these changes. Static source checks and evidence uploads are defined in [CI](.github/workflows/ci.yml); see [verification scope](docs/static-verification.md). Next: final acceptance review.
 
 ## License and provenance
 
