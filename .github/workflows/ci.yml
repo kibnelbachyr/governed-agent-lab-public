@@ -22,6 +22,8 @@ jobs:
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Verify tracked source and runtime imports
+        run: python scripts/verify_source.py
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
       - name: Run affirmative demo
@@ -38,4 +40,13 @@ jobs:
           grep -F '"kind": "rejected"' rejected.txt
           if grep -F '"kind": "executed"' rejected.txt; then exit 1; fi
       - name: Evaluate versioned governance scenarios
+        id: conformance
         run: python -m evals.run --repeat 3 --output evaluation-report.json
+      - name: Upload synthetic conformance evidence
+        if: always() && steps.conformance.outcome != 'skipped'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: governance-conformance-${{ matrix.python-version }}
+          path: evaluation-report.json
+          if-no-files-found: error
+          retention-days: 14
