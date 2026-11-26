@@ -1,0 +1,27 @@
+Local repeat validation — Python 3.13.5
+Command: python -m unittest discover -s tests -v
+test_approved_change (test_lab.Tests.test_approved_change) ... ok
+test_invalid_schema (test_lab.Tests.test_invalid_schema) ... ok
+test_missing_approval (test_lab.Tests.test_missing_approval) ... ok
+test_missing_evidence (test_lab.Tests.test_missing_evidence) ... ok
+test_model_changes_request (test_lab.Tests.test_model_changes_request) ... ok
+test_model_failure (test_lab.Tests.test_model_failure) ... ok
+test_policy_above_maximum (test_lab.Tests.test_policy_above_maximum) ... ok
+test_policy_below_minimum (test_lab.Tests.test_policy_below_minimum) ... ok
+test_rejected_approval (test_lab.Tests.test_rejected_approval) ... ok
+test_replay (test_lab.Tests.test_replay) ... ok
+test_restart_recovery (test_lab.Tests.test_restart_recovery) ... ok
+test_stale_approval (test_lab.Tests.test_stale_approval) ... ok
+test_stale_inventory (test_lab.Tests.test_stale_inventory) ... ok
+test_wrong_digest (test_lab.Tests.test_wrong_digest) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.144s
+
+OK
+
+Git blob identities of tested local files, verified against imported repository branch:
+lab.py e3b9a3cec4a1efb03b539af552dd6f0c9284ac8d
+tests/test_lab.py 5aa45c7269a507e86022e2436511ddc7fb2dc1e0
+
+Control-flow tests only; no live LLM, security boundary or independent quality evaluation.

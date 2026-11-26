@@ -1,0 +1,4 @@
+Local affirmative demo, Python 3.13.5
+Command: printf 'y\n' | python lab.py
+Observed result: {'id': 'synthetic-store', 'days': 60, 'revision': 2}
+The demo starts from a synthetic 30-day retention value and records submitted, proposed, approved and executed events. UUIDs, timestamps and recommendation digests vary between runs. This summary records a local simulation, not a cloud action.
