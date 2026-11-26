@@ -67,7 +67,7 @@ class Lab:
 
     def simulated_session(self, principal):
         """Trusted local harness only: explicitly simulates identity issuance."""
-        if principal not in self._sessions:
+        if type(principal) is not str or principal not in self._sessions:
             raise Denied('unknown simulated principal')
         return self._sessions[principal]
 
@@ -136,17 +136,19 @@ class Lab:
             raise Denied('recommendation differs from request')
         if not 30 <= rec.retention_days <= 90:
             raise Denied('retention outside synthetic 30–90 day policy')
-        if rec.evidence_id != inventory['id'] or type(rec.evidence_revision) is not int or rec.evidence_revision != inventory['revision']:
+        if type(rec.evidence_id) is not str or rec.evidence_id != inventory['id'] or type(rec.evidence_revision) is not int or rec.evidence_revision != inventory['revision']:
             raise Denied('missing or stale evidence')
-        if not isinstance(rec.rationale,str) or not rec.rationale.strip() or len(rec.rationale)>500:
+        if type(rec.rationale) is not str or not rec.rationale.strip() or len(rec.rationale)>500:
             raise Denied('invalid rationale')
 
     @audit_denials('propose')
     def propose(self, rid, model=None, *, session=None):
         self._authorize(session, 'propose')
         model = model if model is not None else FakeModel()
-        # Untrusted adapter runs outside transaction and has no action capability.
+        # Injected Python adapter is trusted code; only its returned data is untrusted.
         initial = self._row(rid)
+        if initial['status'] in ('executed','rejected'):
+            raise Denied('terminal request')
         snapshot = self.inventory()
         try:
             rec = model.recommend(initial['requested_days'],dict(snapshot))
@@ -160,7 +162,7 @@ class Lab:
             row = self._row(rid)
             if row['status'] in ('executed','rejected'):
                 raise Denied('terminal request')
-            if row['version'] != initial['version']:
+            if row['version'] != initial['version'] or row['status'] != initial['status']:
                 raise Denied('concurrent recommendation revision')
             self._policy(row,rec,self.inventory())
             ver = row['version']+1
@@ -192,8 +194,9 @@ class Lab:
             if row['status']!='proposed' or row['digest']!=digest:
                 raise Denied('no current matching recommendation')
             status = 'approved' if approve else 'rejected'
+            rec = self._current_recommendation(row)
             if approve:
-                self._policy(row,self._current_recommendation(row),self.inventory())
+                self._policy(row,rec,self.inventory())
             self.db.execute('UPDATE requests SET status=?,reviewer=?,approval_digest=? WHERE id=?',
                             (status,reviewer,digest if approve else None,rid))
             self._event(rid,status,{'reviewer':reviewer,'digest':digest})
@@ -206,7 +209,7 @@ class Lab:
             row = self._row(rid)
             if row['status']!='approved' or row['digest']!=digest or row['approval_digest']!=digest or row['reviewer']!='reviewer':
                 raise Denied('current approval required; replay or stale approval denied')
-            rec = Recommendation(**json.loads(row['recommendation']))
+            rec = self._current_recommendation(row)
             self._policy(row,rec,self.inventory())
             self.db.execute('INSERT INTO actions VALUES(?,?,?)',(rid,digest,rec.retention_days))
             self.db.execute('UPDATE inventory SET days=?,revision=revision+1 WHERE id=?',(rec.retention_days,rec.evidence_id))
