@@ -41,6 +41,44 @@ class Recommendation:
     evidence_revision: int
     rationale: str
 
+MAX_RESPONSE_BYTES = 4096
+_DEFAULT_RESPONSE = object()
+
+def _unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError('duplicate JSON key')
+        result[key] = value
+    return result
+
+def _reject_constant(value):
+    raise ValueError('nonfinite JSON number')
+
+def parse_response(raw):
+    """Only bounded UTF-8 JSON data crosses the recommendation boundary."""
+    if type(raw) is not bytes or not 0 < len(raw) <= MAX_RESPONSE_BYTES:
+        raise Denied('invalid provider response size or type')
+    try:
+        data = json.loads(raw.decode('utf-8'), object_pairs_hook=_unique_object,
+                          parse_constant=_reject_constant)
+        if type(data) is not dict or set(data) != {
+            'retention_days', 'evidence_id', 'evidence_revision', 'rationale'
+        }:
+            raise ValueError('unexpected response fields')
+        if (type(data['retention_days']) is not int or
+            type(data['evidence_revision']) is not int or
+            type(data['evidence_id']) is not str or
+            type(data['rationale']) is not str):
+            raise ValueError('invalid primitive types')
+        for value in (data['evidence_id'], data['rationale']):
+            value.encode('utf-8')
+            if any(ord(ch) < 32 or 127 <= ord(ch) <= 159 for ch in value):
+                raise ValueError('control character')
+        return Recommendation(**data)
+    except (ValueError, TypeError, UnicodeError, RecursionError) as exc:
+        raise Denied('invalid provider response') from exc
+
 class FakeModel:
     """Deterministic read-only adapter, not an actual LLM."""
     def recommend(self, requested_days, inventory):
@@ -142,22 +180,19 @@ class Lab:
             raise Denied('invalid rationale')
 
     @audit_denials('propose')
-    def propose(self, rid, model=None, *, session=None):
+    def propose(self, rid, response=_DEFAULT_RESPONSE, *, session=None):
         self._authorize(session, 'propose')
-        model = model if model is not None else FakeModel()
-        # Injected Python adapter is trusted code; only its returned data is untrusted.
         initial = self._row(rid)
         if initial['status'] in ('executed','rejected'):
             raise Denied('terminal request')
         snapshot = self.inventory()
-        try:
-            rec = model.recommend(initial['requested_days'],dict(snapshot))
-        except Exception as exc:
+        if response is _DEFAULT_RESPONSE:
+            response = json.dumps(FakeModel().recommend(initial['requested_days'], snapshot).__dict__).encode()
+        if response is None:
             with self.tx():
-                self._event(rid,'model_failed',{'error_type':type(exc).__name__})
-            raise Denied('model failed; no recommendation recorded') from exc
-        if type(rec) is not Recommendation:
-            raise Denied('invalid recommendation schema')
+                self._event(rid,'model_failed',{'reason':'provider_unavailable'})
+            raise Denied('provider unavailable')
+        rec = parse_response(response)
         with self.tx():
             row = self._row(rid)
             if row['status'] in ('executed','rejected'):
@@ -176,12 +211,12 @@ class Lab:
     def _current_recommendation(self, row):
         try:
             payload = row['recommendation']
-            rec = Recommendation(**json.loads(payload))
+            rec = parse_response(payload.encode('utf-8'))
             expected = hashlib.sha256(f"{row['id']}:{row['version']}:{POLICY_VERSION}:{payload}".encode()).hexdigest()
             if row['digest'] != expected:
                 raise Denied('recommendation integrity or policy version mismatch')
             return rec
-        except (TypeError, ValueError, KeyError) as exc:
+        except (TypeError, ValueError, KeyError, AttributeError) as exc:
             raise Denied('invalid persisted recommendation') from exc
 
     @audit_denials('decide')
