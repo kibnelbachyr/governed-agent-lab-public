@@ -1,0 +1,831 @@
+{
+  "version": "2.0",
+  "description": "Preserves 16 v1 cases and adds 15 adverse control-plane cases with per-step outcomes and persisted authorization assertions. Synthetic, not independently authored.",
+  "cases": [
+    {
+      "id": "E01",
+      "title": "Nominal approved change",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "approve",
+        "execute"
+      ],
+      "expected": {
+        "days": 60,
+        "revision": 2,
+        "actions": 1,
+        "status": "executed",
+        "denials": [],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved",
+          "executed"
+        ]
+      }
+    },
+    {
+      "id": "E02",
+      "title": "Inclusive lower boundary",
+      "requested_days": 30,
+      "steps": [
+        "propose",
+        "approve",
+        "execute"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 2,
+        "actions": 1,
+        "status": "executed",
+        "denials": [],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved",
+          "executed"
+        ]
+      }
+    },
+    {
+      "id": "E03",
+      "title": "Inclusive upper boundary",
+      "requested_days": 90,
+      "steps": [
+        "propose",
+        "approve",
+        "execute"
+      ],
+      "expected": {
+        "days": 90,
+        "revision": 2,
+        "actions": 1,
+        "status": "executed",
+        "denials": [],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved",
+          "executed"
+        ]
+      }
+    },
+    {
+      "id": "E04",
+      "title": "Human rejects recommendation",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "reject",
+        "execute"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "rejected",
+        "denials": [
+          "execute"
+        ],
+        "events": [
+          "submitted",
+          "proposed",
+          "rejected"
+        ]
+      }
+    },
+    {
+      "id": "E05",
+      "title": "Attempt before approval",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "execute"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "proposed",
+        "denials": [
+          "execute"
+        ],
+        "events": [
+          "submitted",
+          "proposed"
+        ]
+      }
+    },
+    {
+      "id": "E06",
+      "title": "Below policy minimum",
+      "requested_days": 29,
+      "steps": [
+        "propose"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "submitted",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted"
+        ]
+      }
+    },
+    {
+      "id": "E07",
+      "title": "Above policy maximum",
+      "requested_days": 91,
+      "steps": [
+        "propose"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "submitted",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted"
+        ]
+      }
+    },
+    {
+      "id": "E08",
+      "title": "Approval bound to wrong digest",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "approve_wrong",
+        "execute"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "proposed",
+        "denials": [
+          "decide",
+          "execute"
+        ],
+        "events": [
+          "submitted",
+          "proposed"
+        ]
+      }
+    },
+    {
+      "id": "E09",
+      "title": "Approval invalidated by revision",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "approve",
+        "revise",
+        "execute_previous",
+        "execute"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "proposed",
+        "denials": [
+          "execute",
+          "execute"
+        ],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved",
+          "proposed"
+        ]
+      }
+    },
+    {
+      "id": "E10",
+      "title": "Nonexistent evidence reference",
+      "requested_days": 60,
+      "steps": [
+        "propose_missing_evidence"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "submitted",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted"
+        ]
+      }
+    },
+    {
+      "id": "E11",
+      "title": "Model changes requested value",
+      "requested_days": 60,
+      "steps": [
+        "propose_changed_value"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "submitted",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted"
+        ]
+      }
+    },
+    {
+      "id": "E12",
+      "title": "Malformed model response",
+      "requested_days": 60,
+      "steps": [
+        "propose_invalid_schema"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "submitted",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted"
+        ]
+      }
+    },
+    {
+      "id": "E13",
+      "title": "Model failure",
+      "requested_days": 60,
+      "steps": [
+        "propose_failure"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "submitted",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted",
+          "model_failed"
+        ]
+      }
+    },
+    {
+      "id": "E14",
+      "title": "Duplicate execution denied",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "approve",
+        "execute",
+        "execute"
+      ],
+      "expected": {
+        "days": 60,
+        "revision": 2,
+        "actions": 1,
+        "status": "executed",
+        "denials": [
+          "execute"
+        ],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved",
+          "executed"
+        ]
+      }
+    },
+    {
+      "id": "E15",
+      "title": "Approval persists across reopen",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "approve",
+        "reopen",
+        "execute"
+      ],
+      "expected": {
+        "days": 60,
+        "revision": 2,
+        "actions": 1,
+        "status": "executed",
+        "denials": [],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved",
+          "executed"
+        ]
+      }
+    },
+    {
+      "id": "E16",
+      "title": "Stale evidence revision",
+      "requested_days": 60,
+      "steps": [
+        "propose_stale_evidence"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "submitted",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted"
+        ]
+      }
+    },
+    {
+      "id": "E17",
+      "title": "Provider claims approval",
+      "requested_days": 60,
+      "steps": [
+        "propose_authority_field"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "submitted",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted"
+        ],
+        "outcomes": [
+          "denied"
+        ],
+        "version": 0,
+        "reviewer": null,
+        "approval_present": false
+      }
+    },
+    {
+      "id": "E18",
+      "title": "Duplicate JSON field",
+      "requested_days": 60,
+      "steps": [
+        "propose_duplicate_key"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "submitted",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted"
+        ],
+        "outcomes": [
+          "denied"
+        ],
+        "version": 0,
+        "reviewer": null,
+        "approval_present": false
+      }
+    },
+    {
+      "id": "E19",
+      "title": "Oversized response",
+      "requested_days": 60,
+      "steps": [
+        "propose_oversized"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "submitted",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted"
+        ],
+        "outcomes": [
+          "denied"
+        ],
+        "version": 0,
+        "reviewer": null,
+        "approval_present": false
+      }
+    },
+    {
+      "id": "E20",
+      "title": "Nonfinite value",
+      "requested_days": 60,
+      "steps": [
+        "propose_nonfinite"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "submitted",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted"
+        ],
+        "outcomes": [
+          "denied"
+        ],
+        "version": 0,
+        "reviewer": null,
+        "approval_present": false
+      }
+    },
+    {
+      "id": "E21",
+      "title": "Boolean used as integer",
+      "requested_days": 60,
+      "steps": [
+        "propose_bool_value"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "submitted",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted"
+        ],
+        "outcomes": [
+          "denied"
+        ],
+        "version": 0,
+        "reviewer": null,
+        "approval_present": false
+      }
+    },
+    {
+      "id": "E22",
+      "title": "Controller cannot approve",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "approve_wrong_role",
+        "execute"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "proposed",
+        "denials": [
+          "decide",
+          "execute"
+        ],
+        "events": [
+          "submitted",
+          "proposed"
+        ],
+        "outcomes": [
+          "ok",
+          "denied",
+          "denied"
+        ],
+        "version": 1,
+        "reviewer": null,
+        "approval_present": false
+      }
+    },
+    {
+      "id": "E23",
+      "title": "Reviewer cannot execute",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "approve",
+        "execute_wrong_role",
+        "execute"
+      ],
+      "expected": {
+        "days": 60,
+        "revision": 2,
+        "actions": 1,
+        "status": "executed",
+        "denials": [
+          "execute"
+        ],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved",
+          "executed"
+        ],
+        "outcomes": [
+          "ok",
+          "ok",
+          "denied",
+          "ok"
+        ],
+        "version": 1,
+        "reviewer": "reviewer",
+        "approval_present": true
+      }
+    },
+    {
+      "id": "E24",
+      "title": "Missing executor session",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "approve",
+        "execute_no_session"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "approved",
+        "denials": [
+          "execute"
+        ],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved"
+        ],
+        "outcomes": [
+          "ok",
+          "ok",
+          "denied"
+        ],
+        "version": 1,
+        "reviewer": "reviewer",
+        "approval_present": true
+      }
+    },
+    {
+      "id": "E25",
+      "title": "Old session rejected after restart",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "approve",
+        "reopen",
+        "execute_old_session",
+        "execute"
+      ],
+      "expected": {
+        "days": 60,
+        "revision": 2,
+        "actions": 1,
+        "status": "executed",
+        "denials": [
+          "execute"
+        ],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved",
+          "executed"
+        ],
+        "outcomes": [
+          "ok",
+          "ok",
+          "ok",
+          "denied",
+          "ok"
+        ],
+        "version": 1,
+        "reviewer": "reviewer",
+        "approval_present": true
+      }
+    },
+    {
+      "id": "E26",
+      "title": "Corrupted approval binding",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "approve",
+        "corrupt_binding",
+        "execute"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "approved",
+        "denials": [
+          "execute"
+        ],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved"
+        ],
+        "outcomes": [
+          "ok",
+          "ok",
+          "ok",
+          "denied"
+        ],
+        "version": 1,
+        "reviewer": "reviewer",
+        "approval_present": true
+      }
+    },
+    {
+      "id": "E27",
+      "title": "Corrupted stored recommendation",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "approve",
+        "corrupt_payload",
+        "execute"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "approved",
+        "denials": [
+          "execute"
+        ],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved"
+        ],
+        "outcomes": [
+          "ok",
+          "ok",
+          "ok",
+          "denied"
+        ],
+        "version": 1,
+        "reviewer": "reviewer",
+        "approval_present": true
+      }
+    },
+    {
+      "id": "E28",
+      "title": "Stale inventory after competing action",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "approve",
+        "advance_inventory",
+        "execute"
+      ],
+      "expected": {
+        "days": 45,
+        "revision": 2,
+        "actions": 1,
+        "status": "approved",
+        "denials": [
+          "execute"
+        ],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved"
+        ],
+        "outcomes": [
+          "ok",
+          "ok",
+          "ok",
+          "denied"
+        ],
+        "version": 1,
+        "reviewer": "reviewer",
+        "approval_present": true
+      }
+    },
+    {
+      "id": "E29",
+      "title": "Instruction in rationale confers no authority",
+      "requested_days": 60,
+      "steps": [
+        "propose_instruction",
+        "execute"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "proposed",
+        "denials": [
+          "execute"
+        ],
+        "events": [
+          "submitted",
+          "proposed"
+        ],
+        "outcomes": [
+          "ok",
+          "denied"
+        ],
+        "version": 1,
+        "reviewer": null,
+        "approval_present": false
+      }
+    },
+    {
+      "id": "E30",
+      "title": "Malformed revision preserves existing approval",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "approve",
+        "propose_authority_field",
+        "execute"
+      ],
+      "expected": {
+        "days": 60,
+        "revision": 2,
+        "actions": 1,
+        "status": "executed",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved",
+          "executed"
+        ],
+        "outcomes": [
+          "ok",
+          "ok",
+          "denied",
+          "ok"
+        ],
+        "version": 1,
+        "reviewer": "reviewer",
+        "approval_present": true
+      }
+    },
+    {
+      "id": "E31",
+      "title": "Executed request is terminal",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "approve",
+        "execute",
+        "revise"
+      ],
+      "expected": {
+        "days": 60,
+        "revision": 2,
+        "actions": 1,
+        "status": "executed",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved",
+          "executed"
+        ],
+        "outcomes": [
+          "ok",
+          "ok",
+          "ok",
+          "denied"
+        ],
+        "version": 1,
+        "reviewer": "reviewer",
+        "approval_present": true
+      }
+    }
+  ]
+}
