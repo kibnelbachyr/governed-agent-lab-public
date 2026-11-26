@@ -1,0 +1,364 @@
+{
+  "version": "1.0",
+  "description": "Synthetic control-plane scenario expectations; separately versioned from application code, not independently authored or held out.",
+  "cases": [
+    {
+      "id": "E01",
+      "title": "Nominal approved change",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "approve",
+        "execute"
+      ],
+      "expected": {
+        "days": 60,
+        "revision": 2,
+        "actions": 1,
+        "status": "executed",
+        "denials": [],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved",
+          "executed"
+        ]
+      }
+    },
+    {
+      "id": "E02",
+      "title": "Inclusive lower boundary",
+      "requested_days": 30,
+      "steps": [
+        "propose",
+        "approve",
+        "execute"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 2,
+        "actions": 1,
+        "status": "executed",
+        "denials": [],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved",
+          "executed"
+        ]
+      }
+    },
+    {
+      "id": "E03",
+      "title": "Inclusive upper boundary",
+      "requested_days": 90,
+      "steps": [
+        "propose",
+        "approve",
+        "execute"
+      ],
+      "expected": {
+        "days": 90,
+        "revision": 2,
+        "actions": 1,
+        "status": "executed",
+        "denials": [],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved",
+          "executed"
+        ]
+      }
+    },
+    {
+      "id": "E04",
+      "title": "Human rejects recommendation",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "reject",
+        "execute"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "rejected",
+        "denials": [
+          "execute"
+        ],
+        "events": [
+          "submitted",
+          "proposed",
+          "rejected"
+        ]
+      }
+    },
+    {
+      "id": "E05",
+      "title": "Attempt before approval",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "execute"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "proposed",
+        "denials": [
+          "execute"
+        ],
+        "events": [
+          "submitted",
+          "proposed"
+        ]
+      }
+    },
+    {
+      "id": "E06",
+      "title": "Below policy minimum",
+      "requested_days": 29,
+      "steps": [
+        "propose"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "submitted",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted"
+        ]
+      }
+    },
+    {
+      "id": "E07",
+      "title": "Above policy maximum",
+      "requested_days": 91,
+      "steps": [
+        "propose"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "submitted",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted"
+        ]
+      }
+    },
+    {
+      "id": "E08",
+      "title": "Approval bound to wrong digest",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "approve_wrong",
+        "execute"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "proposed",
+        "denials": [
+          "decide",
+          "execute"
+        ],
+        "events": [
+          "submitted",
+          "proposed"
+        ]
+      }
+    },
+    {
+      "id": "E09",
+      "title": "Approval invalidated by revision",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "approve",
+        "revise",
+        "execute_previous",
+        "execute"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "proposed",
+        "denials": [
+          "execute",
+          "execute"
+        ],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved",
+          "proposed"
+        ]
+      }
+    },
+    {
+      "id": "E10",
+      "title": "Nonexistent evidence reference",
+      "requested_days": 60,
+      "steps": [
+        "propose_missing_evidence"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "submitted",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted"
+        ]
+      }
+    },
+    {
+      "id": "E11",
+      "title": "Model changes requested value",
+      "requested_days": 60,
+      "steps": [
+        "propose_changed_value"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "submitted",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted"
+        ]
+      }
+    },
+    {
+      "id": "E12",
+      "title": "Malformed model response",
+      "requested_days": 60,
+      "steps": [
+        "propose_invalid_schema"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "submitted",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted"
+        ]
+      }
+    },
+    {
+      "id": "E13",
+      "title": "Model failure",
+      "requested_days": 60,
+      "steps": [
+        "propose_failure"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "submitted",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted",
+          "model_failed"
+        ]
+      }
+    },
+    {
+      "id": "E14",
+      "title": "Duplicate execution denied",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "approve",
+        "execute",
+        "execute"
+      ],
+      "expected": {
+        "days": 60,
+        "revision": 2,
+        "actions": 1,
+        "status": "executed",
+        "denials": [
+          "execute"
+        ],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved",
+          "executed"
+        ]
+      }
+    },
+    {
+      "id": "E15",
+      "title": "Approval persists across reopen",
+      "requested_days": 60,
+      "steps": [
+        "propose",
+        "approve",
+        "reopen",
+        "execute"
+      ],
+      "expected": {
+        "days": 60,
+        "revision": 2,
+        "actions": 1,
+        "status": "executed",
+        "denials": [],
+        "events": [
+          "submitted",
+          "proposed",
+          "approved",
+          "executed"
+        ]
+      }
+    },
+    {
+      "id": "E16",
+      "title": "Stale evidence revision",
+      "requested_days": 60,
+      "steps": [
+        "propose_stale_evidence"
+      ],
+      "expected": {
+        "days": 30,
+        "revision": 1,
+        "actions": 0,
+        "status": "submitted",
+        "denials": [
+          "propose"
+        ],
+        "events": [
+          "submitted"
+        ]
+      }
+    }
+  ]
+}
