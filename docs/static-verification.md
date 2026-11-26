@@ -1,0 +1,7 @@
+# Static verification
+
+Run from a clean checkout: `python scripts/verify_source.py`. Git is required for tracked-file enumeration; the checker itself uses only Python standard library. No third-party application dependencies or package installation are needed. The checker parses all tracked Python files, rejects named dynamic execution calls, verifies the explicit runtime import allowlist in lab.py, checks trailing whitespace and final newline, and flags selected sensitive filenames, nonregular/binary files and a small credential-pattern set. Tests include synthetic negative examples. Findings contain filenames and reason labels, never matched values.
+
+This is intentionally narrow: not a general linter, AST taint analysis, comprehensive secret scanner, full history audit, dependency vulnerability scan or proof of absence of malicious code. Indirect calls, aliased functions, other credential formats and runtime/runner vulnerabilities are outside the check. Standard-library-only imports are not a guarantee of a secure Python distribution or CI supply chain. Do not commit any actual credentials or private data. Review changes to the allowlist and checker as part of normal PR review.
+
+CI runs on Python 3.11 and 3.13 with read-only repository permissions, pinned action revisions and checkout credentials disabled. Each interpreter uploads its synthetic JSON evaluation report separately for 14 days. Preserve reviewed aggregate evidence and archive hashes before expiry; artifacts are not permanent. No new model, cloud calls or release are authorized.
