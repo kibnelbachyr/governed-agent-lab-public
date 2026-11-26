@@ -38,4 +38,4 @@ jobs:
           grep -F '"kind": "rejected"' rejected.txt
           if grep -F '"kind": "executed"' rejected.txt; then exit 1; fi
       - name: Evaluate versioned governance scenarios
-        run: python -m evals.run --output evaluation-report.json
+        run: python -m evals.run --repeat 3 --output evaluation-report.json
