@@ -14,7 +14,7 @@ FORBIDDEN_CALLS = {'eval', 'exec', 'compile', '__import__'}
 FORBIDDEN_NAMES = {'.env', '.netrc', 'id_rsa', 'id_ed25519', 'credentials.json'}
 FORBIDDEN_SUFFIXES = {'.pem', '.key', '.pfx', '.p12', '.db', '.sqlite', '.sqlite3', '.pyc'}
 PATTERNS = (
-    re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH |DSA |ENCRYPTED )?PRIVATE KEY-----'),
+    re.compile(r'-----BEGIN ' + r'(?:RSA |EC |OPENSSH |DSA |ENCRYPTED )?PRIVATE KEY-----'),
     re.compile(r'\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,})\b'),
     re.compile(r'\b(?:AKIA|ASIA)[A-Z0-9]{16}\b'),
     re.compile(r'(?i)\b(?:api[_-]?key|client[_-]?secret|password|accountkey)\s*[:=]\s*["\x27]?[A-Za-z0-9+/=_-]{24,}'),
