@@ -33,7 +33,7 @@ flowchart LR
     X --> E
 ```
 
-A deterministic fake model receives a synthetic inventory snapshot. The controller checks typed recommendations and an illustrative 30–90 day retention rule (not legal or industry guidance). Approval binds the reviewer label to the exact recommendation digest, version and policy version. Execution checks current evidence and authorization again, and transactionally records a unique action, inventory update and event.
+A deterministic fake model receives a synthetic inventory snapshot. The controller checks strict, bounded UTF-8 JSON recommendation data (no arbitrary adapter callback) and typed recommendations and an illustrative 30–90 day retention rule (not legal or industry guidance). Approval binds the simulated reviewer principal to the exact recommendation digest, version and policy version. Execution checks current evidence and authorization again, and transactionally records a unique action, inventory update and event.
 
 ## Evidence and continuous integration
 
@@ -57,9 +57,9 @@ The [versioned fixture set](evals/cases-v1.json) defines 16 synthetic cases with
 
 ## Limitations
 
-The reviewer label is not authenticated identity; the adapter is not sandboxed from arbitrary Python code; the SQLite event log is not tamper-proof; only expected application-level denials are captured by the denial audit. Evidence validation checks synthetic identity and revision, not factual support of free-form claims. The policy is hardcoded and the sample is single-process. No live model or prompt-injection resilience has been evaluated. No cloud integration, deployment, or independently authored evaluation dataset is included. This is an experimental control-plane prototype, not a deployable security boundary.
+On current main, trusted local harness sessions simulate separate roles; they are not authenticated identities. The controller accepts bounded JSON bytes, not provider callables; this is not an OS sandbox; the SQLite event log is not tamper-proof; only expected application-level denials are captured by the denial audit. Evidence validation checks synthetic identity and revision, not factual support of free-form claims. The policy is hardcoded and the sample is single-process. No live model or prompt-injection resilience has been evaluated. No cloud integration, deployment, or independently authored evaluation dataset is included. This is an experimental control-plane prototype, not a deployable security boundary.
 
-Next: introduce explicit adapter isolation and authenticated decision boundary appropriate to the target architecture; extend failure handling and audit resilience; review the scenario set independently and expand coverage.
+Current development: see [ADR-001](docs/adr-001-control-plane.md) and [threat model](docs/threat-model.md). The v0.3.0 tag predates these changes. Next: expand adverse-state evaluation and static verification.
 
 ## License and provenance
 
