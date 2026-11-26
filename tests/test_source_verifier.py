@@ -26,3 +26,10 @@ class SourceVerifierTests(unittest.TestCase):
     def test_source_hygiene(self):
         self.assertIn('trailing whitespace', inspect_file(Path('test.py'), 'x = 1  \n'))
         self.assertIn('missing final newline', inspect_file(Path('test.py'), 'x = 1'))
+
+    def test_regex_compile_is_not_python_execution(self):
+        self.assertEqual(inspect_python('import re\nre.compile("pattern")\n'), [])
+        for source in ('compile("1", "", "eval")', 'builtins.compile("1", "", "eval")',
+                       'builtins.exec("pass")', '__import__("os")'):
+            with self.subTest(source=source):
+                self.assertIn('dynamic code execution call', inspect_python(source))
