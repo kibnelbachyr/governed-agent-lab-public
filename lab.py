@@ -110,7 +110,7 @@ class Lab:
         return self._sessions[principal]
 
     def _authorize(self, session, operation):
-        if type(session) is str and len(session) <= 128:
+        if type(session) is str and len(session) <= 128 and session.isascii():
             for principal, token in self._sessions.items():
                 if hmac.compare_digest(session.encode('utf-8', errors='replace'), token.encode()) and PRINCIPALS[principal] == operation:
                     return principal
@@ -137,7 +137,7 @@ class Lab:
         # Never persist raw unknown IDs, payloads, exception messages or credentials.
         with self.tx():
             known = None
-            if isinstance(rid, str) and len(rid) == 36:
+            if type(rid) is str and len(rid) == 36 and rid.isascii():
                 row = self.db.execute('SELECT id FROM requests WHERE id=?', (rid,)).fetchone()
                 if row is not None:
                     known = row['id']
@@ -148,7 +148,7 @@ class Lab:
         return [dict(row) for row in self.db.execute('SELECT * FROM denials ORDER BY seq')]
 
     def _row(self, rid):
-        if not isinstance(rid, str) or len(rid) != 36:
+        if type(rid) is not str or len(rid) != 36 or not rid.isascii():
             raise Denied('invalid request identifier')
         row = self.db.execute('SELECT * FROM requests WHERE id=?',(rid,)).fetchone()
         if row is None:
@@ -201,7 +201,7 @@ class Lab:
                 raise Denied('concurrent recommendation revision')
             self._policy(row,rec,self.inventory())
             ver = row['version']+1
-            payload = json.dumps(rec.__dict__,sort_keys=True,separators=(',',':'))
+            payload = json.dumps(rec.__dict__,sort_keys=True,separators=(',',':'),ensure_ascii=False)
             digest = hashlib.sha256(f'{rid}:{ver}:{POLICY_VERSION}:{payload}'.encode()).hexdigest()
             self.db.execute('UPDATE requests SET version=?,recommendation=?,digest=?,status=?,reviewer=NULL,approval_digest=NULL WHERE id=?',
                             (ver,payload,digest,'proposed',rid))
@@ -222,7 +222,7 @@ class Lab:
     @audit_denials('decide')
     def decide(self,rid,digest,approve, *, session=None):
         reviewer = self._authorize(session, 'decide')
-        if type(approve) is not bool:
+        if type(approve) is not bool or type(digest) is not str or len(digest) != 64:
             raise Denied('invalid decision')
         with self.tx():
             row = self._row(rid)
@@ -239,6 +239,8 @@ class Lab:
     @audit_denials('execute')
     def execute(self,rid,digest, *, session=None):
         principal = self._authorize(session, 'execute')
+        if type(digest) is not str or len(digest) != 64:
+            raise Denied('invalid digest')
         # Only a synthetic SQLite mutation; transactional authorization and idempotency.
         with self.tx():
             row = self._row(rid)
