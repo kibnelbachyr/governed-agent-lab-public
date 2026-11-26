@@ -53,13 +53,13 @@ The original local evidence applies to v0.1. The v0.3.0 public release CI verifi
 python -m evals.run --output evaluation-report.json
 ```
 
-The [versioned fixture set](evals/cases-v1.json) defines 16 synthetic cases with expected inventory, action count, workflow state, denial records and event sequence. The runner uses a fresh SQLite database per case; any mismatch fails CI. See the [evaluation protocol](evals/README.md) for the rubric, scope and interpretation. The public v0.3.0 release CI passed all 19 unit tests, 16 scenarios and both smoke tests on Python 3.11 and 3.13. See [validation evidence](docs/validation.md) for the scope of this result. It is a control-plane regression suite, not a held-out or independently authored LLM benchmark.
+The current [versioned fixture set](evals/cases-v2.json) defines 31 synthetic cases, retaining all 16 v1 cases. The new cases check role/session misuse, provider output, approval integrity and stale state. Each case runs three times in fresh SQLite databases; any typed assertion mismatch or unstable normalized observation digest fails CI. See the [evaluation protocol](evals/README.md) for the rubric, scope and interpretation. The public v0.3.0 release CI passed all 19 unit tests, 16 scenarios and both smoke tests on Python 3.11 and 3.13. See [validation evidence](docs/validation.md) for the scope of this result. It is a control-plane regression suite, not a held-out or independently authored LLM benchmark.
 
 ## Limitations
 
 On current main, trusted local harness sessions simulate separate roles; they are not authenticated identities. The controller accepts bounded JSON bytes, not provider callables; this is not an OS sandbox; the SQLite event log is not tamper-proof; only expected application-level denials are captured by the denial audit. Evidence validation checks synthetic identity and revision, not factual support of free-form claims. The policy is hardcoded and the sample is single-process. No live model or prompt-injection resilience has been evaluated. No cloud integration, deployment, or independently authored evaluation dataset is included. This is an experimental control-plane prototype, not a deployable security boundary.
 
-Current development: see [ADR-001](docs/adr-001-control-plane.md) and [threat model](docs/threat-model.md). The v0.3.0 tag predates these changes. Next: expand adverse-state evaluation and static verification.
+Current development: see [ADR-001](docs/adr-001-control-plane.md) and [threat model](docs/threat-model.md). The v0.3.0 tag predates these changes. Next: static verification and final acceptance review.
 
 ## License and provenance
 
