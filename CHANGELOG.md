@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — proposed v0.4.0 experimental pre-release
+## v0.4.0 — published experimental pre-release
 
 - Explicit simulated principal sessions and role validation; bounded JSON provider data interface.
 - Approval-context integrity, policy-version invalidation and transactional adverse-state regressions.
@@ -24,4 +24,4 @@
 - Implemented typed recommendations, explicit approval, deterministic policy, simulated retention changes and transactional SQLite evidence.
 - Verified 14 unit tests and both smoke tests in CI.
 
-Only v0.3.0 is published at this checkpoint. Development milestones are not production readiness.
+v0.4.0 and v0.3.0 are published experimental pre-releases. [Current release](https://github.com/kibnelbachyr/governed-agent-lab-public/releases/tag/v0.4.0). Development milestones are not production readiness.
