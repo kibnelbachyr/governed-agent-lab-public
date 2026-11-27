@@ -2,6 +2,8 @@
 
 Status: engineering acceptance for the synthetic reference scope; proposed v0.4.0 experimental pre-release awaits explicit owner decision and final candidate CI. Existing v0.3.0 remains tagged at a71f33a6e9135348c2c34e8f3d2280b4a96402b5. No new release authorized by this document.
 
+**Subsequent release verification:** [v0.4.0](https://github.com/kibnelbachyr/governed-agent-lab-public/releases/tag/v0.4.0) is published at `b0e8fe0a75fa801f00cab2951ecee16d43d57e8b`; [final CI](https://github.com/kibnelbachyr/governed-agent-lab-public/actions/runs/45909054667) passed. The original checkpoint and limitations below are retained.
+
 ## Frozen implementation evidence
 
 Implementation commit: `c236879a225d801a98734bd5db5c3a9a5b72c212`. [Main CI 45908846081](https://github.com/kibnelbachyr/governed-agent-lab-public/actions/runs/45908846081), both jobs and all steps successful. PRs #3–#7 merged. Initial #7 CI failure was a checker false positive on regular-expression compilation; corrected with regression test before merge. Main ruleset 28194835 active: PR required, strict checks for both matrix jobs, no bypass actors; no mandatory independent reviewer.
