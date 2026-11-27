@@ -1,5 +1,7 @@
 # Governed Agent Lab
 
+![Governed Agent Lab — Agentic AI / Authority / Governance](docs/assets/engineering-banner.svg)
+
 [![Offline tests](https://github.com/kibnelbachyr/governed-agent-lab-public/actions/workflows/ci.yml/badge.svg)](https://github.com/kibnelbachyr/governed-agent-lab-public/actions/workflows/ci.yml)
 
 **A credential-free lab for engineers designing approval and execution boundaries around AI agents.**
@@ -8,7 +10,7 @@ Try a fictional retention change, approve or reject it, and inspect the recorded
 
 [Experimental release v0.4.0](https://github.com/kibnelbachyr/governed-agent-lab-public/releases/tag/v0.4.0) · Apache-2.0. A fictional storage-retention change demonstrates separation between recommendation and execution authority. No external runtime dependencies, real provider credentials, real infrastructure, or live model calls.
 
-## Run
+## Quickstart — no credentials
 
 Python 3.11 or 3.13 (both verified in release CI):
 
@@ -21,7 +23,7 @@ python lab.py
 
 No pip installation is needed. The demo asks for explicit approval of a synthetic change, records events and deletes its temporary database when finished. Use the `Lab` interface with a persistent SQLite path to exercise restart recovery.
 
-For a noninteractive check on a POSIX shell, run `printf 'y\\n' | python lab.py` or `printf 'n\\n' | python lab.py`. Approval changes the fictional inventory to 60 days (revision 2); rejection records a rejected event with no executed event. No cloud resource changes.
+For a noninteractive check on a POSIX shell, run `printf 'y\n' | python lab.py` or `printf 'n\n' | python lab.py`. Approval changes the fictional inventory to 60 days (revision 2); rejection records a rejected event with no executed event. No cloud resource changes.
 
 ## Architecture and boundaries
 
@@ -31,17 +33,23 @@ flowchart LR
     C --> M[Deterministic fake model]
     M --> C
     C --> P[Policy check]
-    P --> H[Simulated human decision]
+    P --> H{Simulated human decision}
     H -->|Approve| X[Transactional execution]
     H -->|Reject| N[No action]
     X --> D[(Synthetic SQLite inventory)]
     C --> E[(Event log)]
     X --> E
+    classDef component fill:#152436,stroke:#7296b6,color:#f3f6f9;
+    classDef decision fill:#152436,stroke:#78c9c1,color:#f3f6f9,stroke-width:2px;
+    classDef endpoint fill:#243344,stroke:#9db0c4,color:#f3f6f9;
+    class R,C,M,P,X component;
+    class H decision;
+    class N,D,E endpoint;
 ```
 
 A deterministic fake model receives a synthetic inventory snapshot. The controller checks strict, bounded UTF-8 JSON recommendation data (no arbitrary adapter callback) and typed recommendations and an illustrative 30–90 day retention rule (not legal or industry guidance). Approval binds the simulated reviewer principal to the request, recommendation digest, version, policy version and affirmative decision. Execution checks current evidence and authorization again, and transactionally records a unique action, inventory update and event.
 
-## Evidence and continuous integration
+## Engineering evidence
 
 See [local test evidence](test-results.txt) for the repeated 14-test run and [demo summary](demo-output.txt) for the scripted affirmative demo. Imported source and tests were verified against the tested Git blob identities.
 
